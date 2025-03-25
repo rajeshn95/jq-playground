@@ -41,8 +41,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Sample JSON data examples
-const sampleJsonExamples = [
+// Sample JSON data and queries examples
+const sampleData = [
   {
     name: "Person",
     data: `{
@@ -54,6 +54,15 @@ const sampleJsonExamples = [
     "zip": 12345
   }
 }`,
+    queries: [
+      { name: "Get name", query: ".name" },
+      { name: "Get languages", query: ".languages[]" },
+      { name: "Get city", query: ".address.city" },
+      {
+        name: "Format address",
+        query: "{ person: .name, location: .address.city }",
+      },
+    ],
   },
   {
     name: "Users List",
@@ -65,6 +74,15 @@ const sampleJsonExamples = [
   ],
   "active": true
 }`,
+    queries: [
+      { name: "Filter users", query: ".users[] | select(.age > 25)" },
+      { name: "Get all names", query: ".users[].name" },
+      { name: "Count users", query: ".users | length" },
+      {
+        name: "Transform users",
+        query: "{ user_count: (.users | length), names: [.users[].name] }",
+      },
+    ],
   },
   {
     name: "Product Catalog",
@@ -85,6 +103,18 @@ const sampleJsonExamples = [
   ],
   "currency": "USD"
 }`,
+    queries: [
+      { name: "Filter products", query: ".products[] | select(.price < 200)" },
+      { name: "Get product names", query: ".products[].name" },
+      {
+        name: "Calculate discounts",
+        query: ".products[] | { id, name, sale_price: (.price * 0.9) }",
+      },
+      {
+        name: "Filter by tags",
+        query: '.products[] | select(.tags | contains(["electronics"]))',
+      },
+    ],
   },
   {
     name: "Nested Data",
@@ -109,28 +139,31 @@ const sampleJsonExamples = [
     ]
   }
 }`,
+    queries: [
+      { name: "Get company name", query: ".company.name" },
+      { name: "List departments", query: ".company.departments[].name" },
+      {
+        name: "Get all employees",
+        query: ".company.departments[].employees[]",
+      },
+      {
+        name: "Find skills",
+        query: ".company.departments[].employees[].skills[]",
+      },
+    ],
   },
 ];
 
-// Sample queries
-const sampleQueries = [
-  { name: "Get property", query: ".name" },
-  { name: "Filter array", query: ".users[] | select(.age > 25)" },
-  {
-    name: "Transform object",
-    query: "{ user_count: (.users | length), names: [.users[].name] }",
-  },
-  { name: "Access nested", query: ".company.departments[0].employees[].name" },
-  {
-    name: "Map values",
-    query: ".products[] | { id, name, sale_price: (.price * 0.9) }",
-  },
-  {
-    name: "Complex filter",
-    query:
-      '.products[] | select(.price < 200 and (.tags | contains(["electronics"])))',
-  },
-];
+// Flatten sample queries for the sample dropdown
+const sampleJsonExamples = sampleData.map((item) => ({
+  name: item.name,
+  data: item.data,
+}));
+
+// Flatten sample queries for the sample dropdown
+const sampleQueries = sampleData.flatMap((item) =>
+  item.queries.map((q) => ({ name: q.name, query: q.query }))
+);
 
 export default function Home() {
   const [jsonData, setJsonData] = useState("");
@@ -386,17 +419,25 @@ export default function Home() {
   };
 
   const generateRandomSample = () => {
-    const randomJsonIndex = Math.floor(
-      Math.random() * sampleJsonExamples.length
+    // First select a random JSON example
+    const randomJsonIndex = Math.floor(Math.random() * sampleData.length);
+    const selectedSample = sampleData[randomJsonIndex];
+
+    // Then select a random query that's appropriate for this JSON
+    const randomQueryIndex = Math.floor(
+      Math.random() * selectedSample.queries.length
     );
-    const randomQueryIndex = Math.floor(Math.random() * sampleQueries.length);
+    const selectedQuery = selectedSample.queries[randomQueryIndex];
 
     setRandomSample({
-      data: sampleJsonExamples[randomJsonIndex].data,
-      query: sampleQueries[randomQueryIndex].query,
+      data: selectedSample.data,
+      query: selectedQuery.query,
     });
 
-    showNotification("Generated random sample", "info");
+    showNotification(
+      `Generated example: ${selectedSample.name} with ${selectedQuery.name} query`,
+      "info"
+    );
   };
 
   return (
