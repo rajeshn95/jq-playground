@@ -152,7 +152,7 @@ export default function Home() {
   const [fullscreenMode, setFullscreenMode] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [editorFontSize, setEditorFontSize] = useState(14);
-  const [autoFormat, setAutoFormat] = useState(true);
+  // const [autoFormat, setAutoFormat] = useState(true);
   const [randomSample, setRandomSample] = useState<{
     data: string;
     query: string;
@@ -215,6 +215,7 @@ export default function Home() {
         setJsonError("");
       }
     } catch (err) {
+      console.log("error:>", err);
       setJsonError("Invalid JSON format");
     }
   };
@@ -326,6 +327,7 @@ export default function Home() {
         showNotification("JSON formatted successfully", "success");
       }
     } catch (err) {
+      console.log("error::>", err);
       setJsonError("Invalid JSON format");
       showNotification("Cannot format invalid JSON", "error");
     }
