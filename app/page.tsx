@@ -4,7 +4,6 @@ import type React from "react";
 
 import { Geist, Geist_Mono } from "next/font/google";
 import { useState, useEffect, useRef } from "react";
-import Head from "next/head";
 import CodeEditor from "@uiw/react-textarea-code-editor";
 import {
   ArrowRight,
