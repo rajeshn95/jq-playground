@@ -447,15 +447,6 @@ export default function Home() {
       } min-h-screen transition-colors duration-300 ${darkMode ? "dark" : ""}`}
     >
       <div className="min-h-screen bg-slate-100 dark:bg-slate-900 transition-colors duration-300">
-        <Head>
-          <title>JSON Query Playground | Interactive jq Playground</title>
-          <meta
-            name="description"
-            content="Transform and query JSON data with jq in an interactive playground."
-          />
-          <link rel="icon" href="/favicon.ico" />
-        </Head>
-
         {/* Notification */}
         {notification && (
           <div
