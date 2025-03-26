@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://jq-playground.rajeshnautiyal.me"),
+  applicationName: "JSON Query Playground",
   title: "JSON Query Playground | Interactive jq Playground",
   description:
     "Transform and query JSON data with jq in an interactive playground. Test and experiment with jq queries in real-time with syntax highlighting and instant results.",
@@ -27,7 +28,6 @@ export const metadata: Metadata = {
     "jq-wasm",
     "interactive editor",
   ],
-
   openGraph: {
     title: "JSON Query Playground | Interactive jq Playground",
     description:
@@ -35,12 +35,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "JSON Query Playground",
+    images: [{ url: "https://jq-playground.rajeshnautiyal.me/logo.png" }],
   },
   twitter: {
     card: "summary",
     title: "JSON Query Playground | Interactive jq Playground",
     description:
       "Transform and query JSON data with jq in an interactive playground. Test and experiment with jq queries in real-time with syntax highlighting and instant results.",
+    images: "https://jq-playground.rajeshnautiyal.me/logo.png",
     creator: "@Rajssj4",
   },
 };
