@@ -16,6 +16,31 @@ export const metadata: Metadata = {
   title: "JSON Query Playground | Interactive jq Playground",
   description:
     "Transform and query JSON data with jq in an interactive playground. Test and experiment with jq queries in real-time with syntax highlighting and instant results.",
+  keywords: [
+    "jq",
+    "JSON",
+    "query",
+    "playground",
+    "data transformation",
+    "JSON processing",
+    "jq-wasm",
+    "interactive editor",
+  ],
+  openGraph: {
+    title: "JSON Query Playground | Interactive jq Playground",
+    description:
+      "Transform and query JSON data with jq in an interactive playground. Test and experiment with jq queries in real-time with syntax highlighting and instant results.",
+    type: "website",
+    locale: "en_US",
+    siteName: "JSON Query Playground",
+  },
+  twitter: {
+    card: "summary",
+    title: "JSON Query Playground | Interactive jq Playground",
+    description:
+      "Transform and query JSON data with jq in an interactive playground. Test and experiment with jq queries in real-time with syntax highlighting and instant results.",
+    creator: "@Rajssj4",
+  },
 };
 
 export default function RootLayout({
