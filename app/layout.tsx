@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://jq-playground.rajeshnautiyal.me"),
   title: "JSON Query Playground | Interactive jq Playground",
   description:
     "Transform and query JSON data with jq in an interactive playground. Test and experiment with jq queries in real-time with syntax highlighting and instant results.",
@@ -26,6 +27,7 @@ export const metadata: Metadata = {
     "jq-wasm",
     "interactive editor",
   ],
+
   openGraph: {
     title: "JSON Query Playground | Interactive jq Playground",
     description:
