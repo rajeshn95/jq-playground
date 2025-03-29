@@ -54,20 +54,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.op = window.op||function(...args){(window.op.q=window.op.q||[]).push(args);};
-          window.op('init', {
-            clientId: '3bf872ec-15b8-4308-b0d5-b56e0e15a6f5',
-            trackScreenViews: true,
-            trackOutgoingLinks: true,
-            trackAttributes: true,
-          });`,
-          }}
-        />
-        <script src="https://openpanel.dev/op1.js" defer async></script>
-      </head>
+      <head></head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
