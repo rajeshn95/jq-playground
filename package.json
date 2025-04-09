@@ -9,9 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@types/jmespath": "^0.15.2",
     "@uiw/react-textarea-code-editor": "^3.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "jmespath": "^0.16.0",
     "jq-wasm": "^1.1.0-jq-1.7.1",
     "lucide-react": "^0.483.0",
     "next": "15.2.4",

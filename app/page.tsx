@@ -28,6 +28,7 @@ import {
   Code2,
   FileJson,
   Wand2,
+  Replace,
 } from "lucide-react";
 
 const geistSans = Geist({
@@ -54,12 +55,25 @@ const sampleData = [
   }
 }`,
     queries: [
-      { name: "Get name", query: ".name" },
-      { name: "Get languages", query: ".languages[]" },
-      { name: "Get city", query: ".address.city" },
+      {
+        name: "Get name",
+        jq: ".name",
+        jmes: "name",
+      },
+      {
+        name: "Get languages",
+        jq: ".languages[]",
+        jmes: "languages[*]",
+      },
+      {
+        name: "Get city",
+        jq: ".address.city",
+        jmes: "address.city",
+      },
       {
         name: "Format address",
-        query: "{ person: .name, location: .address.city }",
+        jq: "{ person: .name, location: .address.city }",
+        jmes: "{ person: name, location: address.city }",
       },
     ],
   },
@@ -74,12 +88,25 @@ const sampleData = [
   "active": true
 }`,
     queries: [
-      { name: "Filter users", query: ".users[] | select(.age > 25)" },
-      { name: "Get all names", query: ".users[].name" },
-      { name: "Count users", query: ".users | length" },
+      {
+        name: "Filter users",
+        jq: ".users[] | select(.age > 25)",
+        jmes: "users[?age > 25]",
+      },
+      {
+        name: "Get all names",
+        jq: ".users[].name",
+        jmes: "users[*].name",
+      },
+      {
+        name: "Count users",
+        jq: ".users | length",
+        jmes: "length(users)",
+      },
       {
         name: "Transform users",
-        query: "{ user_count: (.users | length), names: [.users[].name] }",
+        jq: "{ user_count: (.users | length), names: [.users[].name] }",
+        jmes: "{ user_count: length(users), names: users[*].name }",
       },
     ],
   },
@@ -103,15 +130,25 @@ const sampleData = [
   "currency": "USD"
 }`,
     queries: [
-      { name: "Filter products", query: ".products[] | select(.price < 200)" },
-      { name: "Get product names", query: ".products[].name" },
+      {
+        name: "Filter products",
+        jq: ".products[] | select(.price < 200)",
+        jmes: "products[?price < 200]",
+      },
+      {
+        name: "Get product names",
+        jq: ".products[].name",
+        jmes: "products[*].name",
+      },
       {
         name: "Calculate discounts",
-        query: ".products[] | { id, name, sale_price: (.price * 0.9) }",
+        jq: ".products[] | { id, name, sale_price: (.price * 0.9) }",
+        jmes: "products[*].{ id: id, name: name, sale_price: price * 0.9 }",
       },
       {
         name: "Filter by tags",
-        query: '.products[] | select(.tags | contains(["electronics"]))',
+        jq: '.products[] | select(.tags | contains(["electronics"]))',
+        jmes: "products[?contains(tags, 'electronics')]",
       },
     ],
   },
@@ -139,15 +176,25 @@ const sampleData = [
   }
 }`,
     queries: [
-      { name: "Get company name", query: ".company.name" },
-      { name: "List departments", query: ".company.departments[].name" },
+      {
+        name: "Get company name",
+        jq: ".company.name",
+        jmes: "company.name",
+      },
+      {
+        name: "List departments",
+        jq: ".company.departments[].name",
+        jmes: "company.departments[*].name",
+      },
       {
         name: "Get all employees",
-        query: ".company.departments[].employees[]",
+        jq: ".company.departments[].employees[]",
+        jmes: "company.departments[*].employees[]",
       },
       {
         name: "Find skills",
-        query: ".company.departments[].employees[].skills[]",
+        jq: ".company.departments[].employees[].skills[]",
+        jmes: "company.departments[*].employees[*].skills[]",
       },
     ],
   },
@@ -161,11 +208,22 @@ const sampleJsonExamples = sampleData.map((item) => ({
 
 // Flatten sample queries for the sample dropdown
 const sampleQueries = sampleData.flatMap((item) =>
-  item.queries.map((q) => ({ name: q.name, query: q.query }))
+  item.queries.map((q) => ({
+    name: q.name,
+    query: q.jq,
+  }))
+);
+
+const sampleJmesQueries = sampleData.flatMap((item) =>
+  item.queries.map((q) => ({
+    name: q.name,
+    query: q.jmes,
+  }))
 );
 
 export default function Home() {
   const [jsonData, setJsonData] = useState("");
+  const [queryWith, setQueryWith] = useState("jq");
   const [jqQuery, setJqQuery] = useState("");
   const [outputData, setOutputData] = useState("");
   const [error, setError] = useState("");
@@ -252,7 +310,7 @@ export default function Home() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleJqSubmit = async () => {
     // Clear previous errors and output
     setError("");
 
@@ -276,6 +334,57 @@ export default function Home() {
 
     try {
       const response = await fetch("/api/jq-query", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: jqQuery, data: jsonData }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setOutputData(JSON.stringify(result, null, 2));
+      showNotification("Query executed successfully!", "success");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while processing your query"
+      );
+      setOutputData("");
+      showNotification("Query execution failed", "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleJmesSubmit = async () => {
+    // Clear previous errors and output
+    setError("");
+
+    // Validate JSON
+    if (!jsonData.trim()) {
+      setError("Please enter JSON data");
+      return;
+    }
+
+    if (jsonError) {
+      setError("Please fix the JSON format errors before running the query");
+      return;
+    }
+
+    if (!jqQuery.trim()) {
+      setError("Please enter a jmes query");
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const response = await fetch("/api/jmes-query", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -430,7 +539,7 @@ export default function Home() {
 
     setRandomSample({
       data: selectedSample.data,
-      query: selectedQuery.query,
+      query: queryWith === "jq" ? selectedQuery.jq : selectedQuery.jmes,
     });
 
     showNotification(
@@ -561,13 +670,27 @@ export default function Home() {
                   <h1 className="text-xl font-bold text-slate-800 dark:text-white">
                     JSON Query Playground
                   </h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {/* <p className="text-xs text-slate-500 dark:text-slate-400">
                     Powered by jq-wasm
-                  </p>
+                  </p> */}
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    setQueryWith((prev) => (prev === "jq" ? "jmespath" : "jq"))
+                  }
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 transition-colors"
+                >
+                  <Replace className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    {queryWith === "jq"
+                      ? "Query with JMESPath"
+                      : "Query with JQ"}
+                  </span>
+                </button>
+
                 <button
                   onClick={generateRandomSample}
                   className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 transition-colors"
@@ -669,7 +792,10 @@ export default function Home() {
                         Sample Queries
                       </div>
                       <div className="grid grid-cols-2 gap-1">
-                        {sampleQueries.map((query, index) => (
+                        {(queryWith === "jq"
+                          ? sampleQueries
+                          : sampleJmesQueries
+                        ).map((query, index) => (
                           <button
                             key={index}
                             onClick={() => handleLoadQuery(query)}
@@ -722,7 +848,7 @@ export default function Home() {
                         <Cpu className="w-4 h-4" />
                       </div>
                       <h2 className="font-medium text-slate-700 dark:text-slate-200">
-                        jq Query
+                        {queryWith === "jq" ? "JQ Query" : "JMESPath Query"}
                       </h2>
                     </div>
 
@@ -793,7 +919,11 @@ export default function Home() {
                     <CodeEditor
                       value={jqQuery}
                       language="bash"
-                      placeholder="Enter your jq query here... (e.g., .name or .users[] | select(.age > 25))"
+                      placeholder={
+                        queryWith === "jq"
+                          ? "Enter your jq query here... (e.g., .name or .users[] | select(.age > 25))"
+                          : "Enter your JMESPath query here... (e.g., name or users[?age > 25])"
+                      }
                       onChange={(e) => setJqQuery(e.target.value)}
                       padding={16}
                       style={{
@@ -820,7 +950,9 @@ export default function Home() {
                     </div>
 
                     <button
-                      onClick={handleSubmit}
+                      onClick={
+                        queryWith === "jq" ? handleJqSubmit : handleJmesSubmit
+                      }
                       disabled={isProcessing || Boolean(jsonError)}
                       className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-white transition-colors ${
                         isProcessing || Boolean(jsonError)
@@ -924,128 +1056,252 @@ export default function Home() {
               )}
             </div>
 
-            {/* Help Section */}
-            <div className="mt-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="p-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-md bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400">
-                    <Info className="w-4 h-4" />
-                  </div>
-                  <h2 className="font-medium text-slate-700 dark:text-slate-200">
-                    jq Quick Reference
-                  </h2>
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Basic Syntax
-                    </h3>
-                    <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          .
-                        </code>
-                        <span>The current object (identity)</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          .property
-                        </code>
-                        <span>Access a property value</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          .[]
-                        </code>
-                        <span>Iterate over array elements</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          .[0]
-                        </code>
-                        <span>Access array element by index</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Filters
-                    </h3>
-                    <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          |
-                        </code>
-                        <span>Pipe output to next filter</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          select(condition)
-                        </code>
-                        <span>Filter objects based on condition</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          map(expression)
-                        </code>
-                        <span>Transform each element of an array</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          length
-                        </code>
-                        <span>Get the length of an array or string</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Advanced
-                    </h3>
-                    <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          {"{field: value}"}
-                        </code>
-                        <span>Create a new object</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          if-then-else
-                        </code>
-                        <span>Conditional logic</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          add
-                        </code>
-                        <span>Sum array elements</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
-                          keys
-                        </code>
-                        <span>Get object keys as an array</span>
-                      </li>
-                    </ul>
+            {queryWith === "jq" ? (
+              <div className="mt-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="p-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-md bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400">
+                      <Info className="w-4 h-4" />
+                    </div>
+                    <h2 className="font-medium text-slate-700 dark:text-slate-200">
+                      jq Quick Reference
+                    </h2>
                   </div>
                 </div>
+
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Basic Syntax
+                      </h3>
+                      <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            .
+                          </code>
+                          <span>The current object (identity)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            .property
+                          </code>
+                          <span>Access a property value</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            .[]
+                          </code>
+                          <span>Iterate over array elements</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            .[0]
+                          </code>
+                          <span>Access array element by index</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Filters
+                      </h3>
+                      <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            |
+                          </code>
+                          <span>Pipe output to next filter</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            select(condition)
+                          </code>
+                          <span>Filter objects based on condition</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            map(expression)
+                          </code>
+                          <span>Transform each element of an array</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            length
+                          </code>
+                          <span>Get the length of an array or string</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Advanced
+                      </h3>
+                      <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            {"{field: value}"}
+                          </code>
+                          <span>Create a new object</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            if-then-else
+                          </code>
+                          <span>Conditional logic</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            add
+                          </code>
+                          <span>Sum array elements</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            keys
+                          </code>
+                          <span>Get object keys as an array</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="mt-6 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="p-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-md bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400">
+                      <Info className="w-4 h-4" />
+                    </div>
+                    <h2 className="font-medium text-slate-700 dark:text-slate-200">
+                      JMESpath Quick Reference
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Basic Syntax Section */}
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Basic Syntax
+                      </h3>
+                      <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            identifier
+                          </code>
+                          <span>Selects a top-level key in JSON</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            identifier.identifier
+                          </code>
+                          <span>Access nested properties</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            identifier[index]
+                          </code>
+                          <span>Access an array element by index</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            identifier[*]
+                          </code>
+                          <span>Project over all array elements</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Filters Section */}
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Filters
+                      </h3>
+                      <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            [? condition]
+                          </code>
+                          <span>
+                            Filter array elements; e.g.,{" "}
+                            <code>people[?age &gt; `30`]</code>
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            addresses[].street
+                          </code>
+                          <span>
+                            Flatten nested arrays and access properties
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            @
+                          </code>
+                          <span>References the current element in filters</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            |
+                          </code>
+                          <span>Pipe operator to chain expressions</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Advanced Section */}
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Advanced
+                      </h3>
+                      <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            length(expression)
+                          </code>
+                          <span>
+                            Returns the length of strings, arrays, or objects
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            contains(array, value)
+                          </code>
+                          <span>
+                            Checks for the presence of a value in an array or
+                            string
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            join(delimiter, list)
+                          </code>
+                          <span>Joins list elements into a single string</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded text-cyan-700 dark:text-cyan-400">
+                            {"{ key: expression }"}
+                          </code>
+                          <span>Create multi-select objects</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </main>
 
           {/* Footer */}
           <footer className="mt-auto py-4 border-t border-slate-200 dark:border-slate-800">
             <div className="max-w-screen-2xl mx-auto px-4 text-center text-slate-500 dark:text-slate-400 text-xs">
-              <p>
-                JSON Query Playground &copy; {new Date().getFullYear()} |
-                Powered by jq-wasm
-              </p>
+              <p>JSON Query Playground &copy; {new Date().getFullYear()}</p>
             </div>
           </footer>
         </div>
