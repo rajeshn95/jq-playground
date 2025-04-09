@@ -15,11 +15,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://jq-playground.rajeshnautiyal.me"),
   applicationName: "JSON Query Playground",
-  title: "JSON Query Playground | Interactive jq Playground",
+  title: "JSON Query Playground | Interactive Playground for JQ/JMESPath",
   description:
-    "Transform and query JSON data with jq in an interactive playground. Test and experiment with jq queries in real-time with syntax highlighting and instant results.",
+    "Transform and query JSON data with JQ/JMESPath in an interactive playground. Test and experiment with JQ/JMESPath queries in real-time with syntax highlighting and instant results.",
   keywords: [
     "jq",
+    "JMESPath",
+    "jmespath",
+    "jmes",
     "JSON",
     "query",
     "playground",
@@ -29,9 +32,9 @@ export const metadata: Metadata = {
     "interactive editor",
   ],
   openGraph: {
-    title: "JSON Query Playground | Interactive jq Playground",
+    title: "JSON Query Playground | Interactive Playground for JQ/JMESPath",
     description:
-      "Transform and query JSON data with jq in an interactive playground. Test and experiment with jq queries in real-time with syntax highlighting and instant results.",
+      "Transform and query JSON data with JQ/JMESPath in an interactive playground. Test and experiment with JQ/JMESPath queries in real-time with syntax highlighting and instant results.",
     type: "website",
     locale: "en_US",
     siteName: "JSON Query Playground",
@@ -39,9 +42,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "JSON Query Playground | Interactive jq Playground",
+    title: "JSON Query Playground | Interactive Playground for JQ/JMESPath",
     description:
-      "Transform and query JSON data with jq in an interactive playground. Test and experiment with jq queries in real-time with syntax highlighting and instant results.",
+      "Transform and query JSON data with JQ/JMESPath in an interactive playground. Test and experiment with JQ/JMESPath queries in real-time with syntax highlighting and instant results.",
     images: "https://jq-playground.rajeshnautiyal.me/logo.png",
     creator: "@Rajssj4",
   },
