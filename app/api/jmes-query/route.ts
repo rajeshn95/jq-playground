@@ -6,6 +6,7 @@ export async function POST(req: Request) {
     const { data, query } = body;
     console.log("Request--->", query, data);
 
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     const result: any = jmespath.search(JSON.parse(data), query);
     console.log("Result--->", result); // Output: ["bar"]
 
